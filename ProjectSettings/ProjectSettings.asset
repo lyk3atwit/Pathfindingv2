@@ -988,11 +988,11 @@ PlayerSettings:
   apiCompatibilityLevel: 6
   activeInputHandler: 0
   windowsGamepadBackendHint: 0
-  cloudProjectId: 51872456-e11b-4350-8b8d-2593c06ff221
+  cloudProjectId: 7d276365-146c-4917-a374-66ab3be5a4a1
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: My project 2025-05-15_06-39-58
-  organizationId: folajimiy
+  projectName: Pathfindingv2
+  organizationId: t1_1txd1_1
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}
