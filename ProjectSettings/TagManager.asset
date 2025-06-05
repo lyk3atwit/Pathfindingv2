@@ -8,6 +8,10 @@ TagManager:
   - Agent
   - Tile
   - PathArrow
+  - PathLine
+  - Wall
+  - Obstacle
+  - Waypoint
   layers:
   - Default
   - TransparentFX

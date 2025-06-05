@@ -7,6 +7,12 @@ using UnityEngine.UI;
 
 public class SimplePathfinder : MonoBehaviour
 {
+    private System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+    private int nodesExplored = 0;
+    
+    public Material lineMaterial;
+    private List<Vector3> visitedPositions = new List<Vector3>();
+
     public enum HeuristicType { Manhattan, Euclidean, Diagonal }
     public enum SearchStrategy { DFS, BFS, Dijkstra, AStar }
 
@@ -34,6 +40,9 @@ public class SimplePathfinder : MonoBehaviour
         ResetTileColors();
 
         isPathResolved = true;
+        nodesExplored = 0;
+        stopwatch.Reset();
+        stopwatch.Start();
 
         switch (strategy)
         {
@@ -42,7 +51,10 @@ public class SimplePathfinder : MonoBehaviour
             case SearchStrategy.Dijkstra: RunDijkstra(startTile, goalTile); break;
             case SearchStrategy.AStar: RunAStar(startTile, goalTile); break;
         }
+
+        stopwatch.Stop();
     }
+
 
     private void ResetArrows()
     {
@@ -66,51 +78,58 @@ public class SimplePathfinder : MonoBehaviour
         }
     }
 
-    private void RunDFS(Tile start, Tile goal)
-    {
-        Stack<PathNode> stack = new Stack<PathNode>();
-        HashSet<Tile> visited = new HashSet<Tile>();
 
-        stack.Push(new PathNode(start, null));
 
-        while (stack.Count > 0)
-        {
-            var current = stack.Pop();
-            if (visited.Contains(current.tile)) continue;
+    //private void RunBFS(Tile start, Tile goal)
+    //{
+    //    Queue<PathNode> queue = new Queue<PathNode>();
+    //    HashSet<Tile> visited = new HashSet<Tile>();
 
-            visited.Add(current.tile);
-            if (current.tile == goal)
-            {
-                ShowPath(ReconstructPath(current));
-                return;
-            }
+    //    queue.Enqueue(new PathNode(start, null));
 
-            foreach (var neighbor in GetNeighbors(current.tile))
-            {
-                if (!visited.Contains(neighbor) && neighbor.tileType != TileType.Wall)
-                    stack.Push(new PathNode(neighbor, current));
-            }
-        }
+    //    while (queue.Count > 0)
+    //    {
+    //        var current = queue.Dequeue();
+    //        if (visited.Contains(current.tile)) continue;
 
-        Debug.LogWarning("DFS: No path found.");
-    }
+    //        visited.Add(current.tile);
+    //        if (current.tile == goal)
+    //        {
+    //            ShowPath(ReconstructPath(current));
+    //            return;
+    //        }
 
+    //        foreach (var neighbor in GetNeighbors(current.tile))
+    //        {
+    //            if (!visited.Contains(neighbor) && neighbor.tileType != TileType.Wall)
+    //                queue.Enqueue(new PathNode(neighbor, current));
+    //        }
+    //    }
+
+    //    Debug.LogWarning("BFS: No path found.");
+    //}
     private void RunBFS(Tile start, Tile goal)
     {
         Queue<PathNode> queue = new Queue<PathNode>();
         HashSet<Tile> visited = new HashSet<Tile>();
 
         queue.Enqueue(new PathNode(start, null));
+        visitedPositions.Clear();
 
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
+            nodesExplored++; //Increment nodesExplored in Algorithms
+
             if (visited.Contains(current.tile)) continue;
 
             visited.Add(current.tile);
+            visitedPositions.Add(current.tile.transform.position + Vector3.up * 0.05f); // Track for line
+
             if (current.tile == goal)
             {
                 ShowPath(ReconstructPath(current));
+                DrawVisitedPath();  // Draw after reaching goal
                 return;
             }
 
@@ -121,25 +140,108 @@ public class SimplePathfinder : MonoBehaviour
             }
         }
 
+        DrawVisitedPath();  // Even if path not found, show visited traversal
         Debug.LogWarning("BFS: No path found.");
     }
+
+
+
+    private void RunDFS(Tile start, Tile goal)
+    {
+        Stack<PathNode> stack = new Stack<PathNode>();
+        HashSet<Tile> visited = new HashSet<Tile>();
+        visitedPositions.Clear();
+
+        stack.Push(new PathNode(start, null));
+
+        while (stack.Count > 0)
+        {
+            var current = stack.Pop();
+            nodesExplored++; //Increment nodesExplored in Algorithms
+            if (visited.Contains(current.tile)) continue;
+
+            visited.Add(current.tile);
+            visitedPositions.Add(current.tile.transform.position + Vector3.up * 0.05f);
+
+            if (current.tile == goal)
+            {
+                ShowPath(ReconstructPath(current));
+                DrawVisitedPath();
+                return;
+            }
+
+            foreach (var neighbor in GetNeighbors(current.tile))
+            {
+                if (!visited.Contains(neighbor) && neighbor.tileType != TileType.Wall)
+                    stack.Push(new PathNode(neighbor, current));
+            }
+        }
+
+        DrawVisitedPath();
+        Debug.LogWarning("DFS: No path found.");
+    }
+
+
+
+    //private void RunDijkstra(Tile start, Tile goal)
+    //{
+    //    List<PathNode> open = new List<PathNode> { new PathNode(start, null, 0f) };
+    //    HashSet<Tile> closed = new HashSet<Tile>();
+
+    //    while (open.Count > 0)
+    //    {
+    //        var current = open.OrderBy(n => n.gCost).First();
+    //        if (current.tile == goal)
+    //        {
+    //            ShowPath(ReconstructPath(current));
+    //            return;
+    //        }
+
+    //        open.Remove(current);
+    //        closed.Add(current.tile);
+
+    //        foreach (var neighbor in GetNeighbors(current.tile))
+    //        {
+    //            if (closed.Contains(neighbor) || neighbor.tileType == TileType.Wall) continue;
+
+    //            float cost = current.gCost + GetTileCost(neighbor);
+    //            var existing = open.FirstOrDefault(n => n.tile == neighbor);
+
+    //            if (existing == null)
+    //                open.Add(new PathNode(neighbor, current, cost));
+    //            else if (cost < existing.gCost)
+    //            {
+    //                existing.gCost = cost;
+    //                existing.parent = current;
+    //            }
+    //        }
+    //    }
+
+    //    Debug.LogWarning("Dijkstra: No path found.");
+    //}
 
     private void RunDijkstra(Tile start, Tile goal)
     {
         List<PathNode> open = new List<PathNode> { new PathNode(start, null, 0f) };
         HashSet<Tile> closed = new HashSet<Tile>();
+        visitedPositions.Clear();
 
         while (open.Count > 0)
         {
             var current = open.OrderBy(n => n.gCost).First();
+            open.Remove(current);
+            visitedPositions.Add(current.tile.transform.position + Vector3.up * 0.05f);
+            closed.Add(current.tile);
+
+            nodesExplored++; //Increment nodesExplored in Algorithms
+
+
             if (current.tile == goal)
             {
                 ShowPath(ReconstructPath(current));
+                DrawVisitedPath();
                 return;
             }
-
-            open.Remove(current);
-            closed.Add(current.tile);
 
             foreach (var neighbor in GetNeighbors(current.tile))
             {
@@ -158,25 +260,69 @@ public class SimplePathfinder : MonoBehaviour
             }
         }
 
+        DrawVisitedPath();
         Debug.LogWarning("Dijkstra: No path found.");
     }
 
+    //private void RunAStar(Tile start, Tile goal)
+    //{
+    //    List<PathNode> open = new List<PathNode> { new PathNode(start, null, 0f, Heuristic(start, goal)) };
+    //    HashSet<Tile> closed = new HashSet<Tile>();
+
+    //    while (open.Count > 0)
+    //    {
+    //        var current = open.OrderBy(n => n.FCost).First();
+    //        if (current.tile == goal)
+    //        {
+    //            ShowPath(ReconstructPath(current));
+    //            return;
+    //        }
+
+    //        open.Remove(current);
+    //        closed.Add(current.tile);
+
+    //        foreach (var neighbor in GetNeighbors(current.tile))
+    //        {
+    //            if (closed.Contains(neighbor) || neighbor.tileType == TileType.Wall) continue;
+
+    //            float g = current.gCost + GetTileCost(neighbor);
+    //            float h = Heuristic(neighbor, goal);
+    //            var existing = open.FirstOrDefault(n => n.tile == neighbor);
+
+    //            if (existing == null)
+    //                open.Add(new PathNode(neighbor, current, g, h));
+    //            else if (g < existing.gCost)
+    //            {
+    //                existing.gCost = g;
+    //                existing.parent = current;
+    //            }
+    //        }
+    //    }
+
+    //    Debug.LogWarning("A*: No path found.");
+    //}
     private void RunAStar(Tile start, Tile goal)
     {
         List<PathNode> open = new List<PathNode> { new PathNode(start, null, 0f, Heuristic(start, goal)) };
         HashSet<Tile> closed = new HashSet<Tile>();
+        visitedPositions.Clear();
 
         while (open.Count > 0)
         {
             var current = open.OrderBy(n => n.FCost).First();
+            open.Remove(current);
+            visitedPositions.Add(current.tile.transform.position + Vector3.up * 0.05f);
+            closed.Add(current.tile);
+
+            nodesExplored++; //Increment nodesExplored in Algorithms
+
+
             if (current.tile == goal)
             {
                 ShowPath(ReconstructPath(current));
+                DrawVisitedPath();
                 return;
             }
-
-            open.Remove(current);
-            closed.Add(current.tile);
 
             foreach (var neighbor in GetNeighbors(current.tile))
             {
@@ -196,8 +342,30 @@ public class SimplePathfinder : MonoBehaviour
             }
         }
 
+        DrawVisitedPath();
         Debug.LogWarning("A*: No path found.");
     }
+
+
+
+    private void DrawVisitedPath()
+    {
+        if (visitedPositions.Count < 2) return;
+
+        GameObject lineObj = new GameObject("VisitedLine");
+        LineRenderer line = lineObj.AddComponent<LineRenderer>();
+        line.material = lineMaterial;
+        line.startWidth = 0.05f;
+        line.endWidth = 0.05f;
+        line.positionCount = visitedPositions.Count;
+        line.useWorldSpace = true;
+        line.numCapVertices = 2;
+        line.tag = "PathLine"; // Optional if you want to group/delete it easily
+
+        line.SetPositions(visitedPositions.ToArray());
+    }
+
+
 
     private List<Tile> ReconstructPath(PathNode node)
     {
@@ -261,8 +429,12 @@ public class SimplePathfinder : MonoBehaviour
 
         if (pathOutputText != null)
         {
-            pathOutputText.text = $"Path:\n{pathString}\n\nTotal cost: {totalCost}";
+            pathOutputText.text = $"Path:\n{pathString}\n\n" +
+                                  $"Total cost: {totalCost}\n" +
+                                  $"Nodes explored: {nodesExplored}\n" +
+                                  $"Time taken: {stopwatch.ElapsedMilliseconds} ms";
         }
+
 
     }
 
@@ -318,8 +490,32 @@ public class SimplePathfinder : MonoBehaviour
         }
     }
 
+    //public void OnResetMap()
+    //{
+    //    foreach (GameObject tileObj in GameObject.FindGameObjectsWithTag("Tile"))
+    //    {
+    //        Tile tile = tileObj.GetComponent<Tile>();
+    //        if (tile != null)
+    //        {
+    //            tile.tileType = TileType.Open;
+    //            tile.GetComponent<Renderer>().material.color = Color.white;
+    //        }
+    //    }
+    //    ResetArrows();
+    //    ResetTileColors();
+
+
+
+    //    //foreach (GameObject arrow in GameObject.FindGameObjectsWithTag("PathArrow"))
+    //    //    Destroy(arrow);
+
+    //    startTile = null;
+    //    goalTile = null;
+    //    isPathResolved = false;
+    //}
     public void OnResetMap()
     {
+        // Reset tile types and colors
         foreach (GameObject tileObj in GameObject.FindGameObjectsWithTag("Tile"))
         {
             Tile tile = tileObj.GetComponent<Tile>();
@@ -329,15 +525,24 @@ public class SimplePathfinder : MonoBehaviour
                 tile.GetComponent<Renderer>().material.color = Color.white;
             }
         }
-        ResetArrows();
-        ResetTileColors();
 
-        //foreach (GameObject arrow in GameObject.FindGameObjectsWithTag("PathArrow"))
-        //    Destroy(arrow);
+        // Clear arrows
+        foreach (GameObject arrow in GameObject.FindGameObjectsWithTag("PathArrow"))
+            Destroy(arrow);
 
+        // Clear visited path line
+        GameObject oldLine = GameObject.Find("VisitedLine");
+        if (oldLine) Destroy(oldLine);
+
+        // Clear any debug output
+        if (pathOutputText != null)
+            pathOutputText.text = "";
+
+        // Reset state
         startTile = null;
         goalTile = null;
         isPathResolved = false;
+        visitedPositions.Clear();
     }
 
 }
@@ -345,424 +550,4 @@ public class SimplePathfinder : MonoBehaviour
 
 
 
-
-
-
-
-//public class SimplePathfinder : MonoBehaviour
-//{
-//    public enum HeuristicType
-//    {
-//        Manhattan,
-//        Euclidean,
-//        Diagonal
-//    }
-
-//    public enum SearchStrategy
-//    {
-//        DFS,
-//        BFS,
-//        Dijkstra,
-//        AStar
-//    }
-
-
-//    [HideInInspector] public Tile startTile;
-//    [HideInInspector] public Tile goalTile;
-//    [HideInInspector] public bool isPathResolved = false;
-
-
-
-//    public SearchStrategy strategy = SearchStrategy.AStar;
-//    public Dropdown strategyDropdown;
-//    public SimplePathfinder pathfinder;
-
-//    public HeuristicType heuristic = HeuristicType.Manhattan;
-//    public Color openColor = Color.cyan;
-//    public Color closedColor = Color.gray;
-//    //public Color pathColor = Color.yellow;
-
-//    public GameObject arrowPrefab; // assign in Inspector
-//    public Transform arrowParent;  // optional: to keep scene organized
-
-
-//    void Start()
-//    {
-//        strategyDropdown.onValueChanged.AddListener(OnStrategyChange);
-//    }
-
-//    void OnStrategyChange(int index)
-//    {
-//        pathfinder.strategy = (SearchStrategy)index;
-//    }
-
-//    public void OnFindPathButton()
-//    {
-//        if (startTile != null && goalTile != null)
-//        {
-//            RunPathfinding(startTile, goalTile);
-//        }
-//        else
-//        {
-//            Debug.LogWarning("Please select a start and a goal tile.");
-//        }
-//    }
-
-//    public void OnResetMap()
-//    {
-//        foreach (GameObject obj in GameObject.FindGameObjectsWithTag("Tile"))
-//        {
-//            Tile tile = obj.GetComponent<Tile>();
-//            if (tile == null) continue;
-
-//            tile.tileType = TileType.Open;
-//            tile.GetComponent<Renderer>().material.color = Color.white;
-//        }
-
-//        foreach (GameObject arrow in GameObject.FindGameObjectsWithTag("PathArrow"))
-//            Destroy(arrow);
-
-//        startTile = null;
-//        goalTile = null;
-//        isPathResolved = false;
-//    }
-
-
-
-//    public void RunPathfinding(Tile startTile, Tile goalTile)
-//    {
-//        if (startTile == null || goalTile == null)
-//        {
-//            Debug.LogWarning("You must select a start and goal tile.");
-//            return;
-//        }
-
-//        isPathResolved = true; // Prevent further edits after path is shown
-//        foreach (GameObject arrow in GameObject.FindGameObjectsWithTag("PathArrow"))
-//            Destroy(arrow);
-
-//        ResetTiles();
-
-//        switch (strategy)
-//        {
-//            case SearchStrategy.DFS:
-//                RunDFS(startTile, goalTile);
-//                break;
-//            case SearchStrategy.BFS:
-//                RunBFS(startTile, goalTile);
-//                break;
-//            case SearchStrategy.Dijkstra:
-//                RunDijkstra(startTile, goalTile);
-//                break;
-//            case SearchStrategy.AStar:
-//            default:
-//                RunAStar(startTile, goalTile);
-//                break;
-//        }
-
-//        // Reset Start/Goal After Each Run
-//        startTile = null;
-//        goalTile = null;
-
-//    }
-
-
-//    private float Heuristic(Tile a, Tile b)
-//    {
-//        int dx = Mathf.Abs(a.gridPosition.x - b.gridPosition.x);
-//        int dy = Mathf.Abs(a.gridPosition.y - b.gridPosition.y);
-//        switch (heuristic)
-//        {
-//            case HeuristicType.Euclidean:
-//                return Mathf.Sqrt(dx * dx + dy * dy);
-//            case HeuristicType.Diagonal:
-//                return Mathf.Max(dx, dy);
-//            case HeuristicType.Manhattan:
-//            default:
-//                return dx + dy;
-//        }
-//    }
-
-
-
-//    private float GetTileCost(Tile tile)
-//    {
-//        return tile.tileType == TileType.Swamp ? 1f : 1f;
-//    }
-
-//    private List<Tile> ReconstructPath(PathNode node)
-//    {
-//        List<Tile> path = new List<Tile>();
-//        while (node != null)
-//        {
-//            path.Insert(0, node.tile);
-//            node = node.parent;
-//        }
-//        return path;
-//    }
-
-//    private List<Tile> GetNeighbors(Tile tile)
-//    {
-//        List<Tile> neighbors = new List<Tile>();
-//        Vector2Int[] directions = new Vector2Int[]
-//        {
-//            Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right
-//        };
-
-//        foreach (Vector2Int dir in directions)
-//        {
-//            Vector2Int pos = tile.gridPosition + dir;
-//            GameObject found = GameObject.Find($"Tile_{pos.x}_{pos.y}");
-//            if (found != null && found.GetComponent<Tile>() != null)
-//            {
-//                neighbors.Add(found.GetComponent<Tile>());
-//            }
-//        }
-
-//        return neighbors;
-//    }
-
-//    // clear previous pathfinding highlights before running A* again
-
-//    private void ResetTiles()
-//    {
-//        foreach (GameObject tileObj in GameObject.FindGameObjectsWithTag("Tile"))
-//        {
-//            Tile tile = tileObj.GetComponent<Tile>();
-//            if (tile != null)
-//            {
-//                Renderer rend = tile.GetComponent<Renderer>();
-//                switch (tile.tileType)
-//                {
-//                    case TileType.Swamp:
-//                        rend.material.color = Color.yellow;
-//                        break;
-//                    case TileType.Wall:
-//                        rend.material.color = Color.black;
-//                        break;
-//                    default:
-//                        rend.material.color = Color.white;
-//                        break;
-//                }
-//            }
-//        }
-//    }
-
-//    public void RunDFS(Tile startTile, Tile goalTile)
-//    {
-//        ResetTiles();
-//        Stack<PathNode> stack = new Stack<PathNode>();
-//        HashSet<Tile> visited = new HashSet<Tile>();
-
-//        stack.Push(new PathNode { tile = startTile, parent = null });
-//        visited.Add(startTile);
-
-//        while (stack.Count > 0)
-//        {
-//            PathNode current = stack.Pop();
-
-//            if (current.tile == goalTile)
-//            {
-//                ShowPath(ReconstructPath(current), startTile, goalTile);
-//                return;
-//            }
-
-//            visited.Add(current.tile);
-//            current.tile.GetComponent<Renderer>().material.color = closedColor;
-
-//            foreach (Tile neighbor in GetNeighbors(current.tile))
-//            {
-//                if (!visited.Contains(neighbor) && neighbor.tileType != TileType.Wall)
-//                {
-//                    stack.Push(new PathNode
-//                    {
-//                        tile = neighbor,
-//                        parent = current
-//                    });
-//                    visited.Add(neighbor);
-//                    neighbor.GetComponent<Renderer>().material.color = openColor;
-//                }
-//            }
-//        }
-
-//        Debug.LogWarning("DFS: No path found.");
-//    }
-
-//    public void RunBFS(Tile startTile, Tile goalTile)
-//    {
-//        ResetTiles();
-//        Queue<PathNode> queue = new Queue<PathNode>();
-//        HashSet<Tile> visited = new HashSet<Tile>();
-
-//        queue.Enqueue(new PathNode { tile = startTile, parent = null });
-//        visited.Add(startTile);
-
-//        while (queue.Count > 0)
-//        {
-//            PathNode current = queue.Dequeue();
-
-//            if (current.tile == goalTile)
-//            {
-//                ShowPath(ReconstructPath(current), startTile, goalTile);
-//                return;
-//            }
-
-//            visited.Add(current.tile);
-//            current.tile.GetComponent<Renderer>().material.color = closedColor;
-
-//            foreach (Tile neighbor in GetNeighbors(current.tile))
-//            {
-//                if (!visited.Contains(neighbor) && neighbor.tileType != TileType.Wall)
-//                {
-//                    queue.Enqueue(new PathNode
-//                    {
-//                        tile = neighbor,
-//                        parent = current
-//                    });
-//                    visited.Add(neighbor);
-//                    neighbor.GetComponent<Renderer>().material.color = openColor;
-//                }
-//            }
-//        }
-
-//        Debug.LogWarning("BFS: No path found.");
-//    }
-
-
-//    public void RunDijkstra(Tile startTile, Tile goalTile)
-//    {
-//        List<PathNode> openSet = new List<PathNode>();
-//        HashSet<Tile> closedSet = new HashSet<Tile>();
-
-//        PathNode startNode = new PathNode
-//        {
-//            tile = startTile,
-//            gCost = 0,
-//            hCost = 0 // not used
-//        };
-
-//        openSet.Add(startNode);
-
-//        while (openSet.Count > 0)
-//        {
-//            PathNode current = openSet.OrderBy(n => n.gCost).First(); // just gCost
-//            if (current.tile == goalTile)
-//            {
-//                ShowPath(ReconstructPath(current), startTile, goalTile);
-//                return;
-//            }
-
-//            openSet.Remove(current);
-//            closedSet.Add(current.tile);
-//            current.tile.GetComponent<Renderer>().material.color = closedColor;
-
-//            foreach (Tile neighbor in GetNeighbors(current.tile))
-//            {
-//                if (closedSet.Contains(neighbor) || neighbor.tileType == TileType.Wall)
-//                    continue;
-
-//                float tentativeG = current.gCost + GetTileCost(neighbor);
-//                PathNode existing = openSet.FirstOrDefault(n => n.tile == neighbor);
-
-//                if (existing == null)
-//                {
-//                    openSet.Add(new PathNode
-//                    {
-//                        tile = neighbor,
-//                        parent = current,
-//                        gCost = tentativeG,
-//                        hCost = 0 // not used
-//                    });
-//                    neighbor.GetComponent<Renderer>().material.color = openColor;
-//                }
-//                else if (tentativeG < existing.gCost)
-//                {
-//                    existing.gCost = tentativeG;
-//                    existing.parent = current;
-//                }
-//            }
-//        }
-
-//        Debug.LogWarning("Dijkstra: No path found.");
-//    }
-
-
-//    public void RunAStar(Tile startTile, Tile goalTile)
-//    {
-//        List<PathNode> openSet = new List<PathNode>();
-//        HashSet<Tile> closedSet = new HashSet<Tile>();
-
-//        PathNode startNode = new PathNode
-//        {
-//            tile = startTile,
-//            gCost = 0,
-//            hCost = Heuristic(startTile, goalTile)
-//        };
-
-//        openSet.Add(startNode);
-
-//        while (openSet.Count > 0)
-//        {
-//            PathNode current = openSet.OrderBy(n => n.FCost).First();
-//            if (current.tile == goalTile)
-//            {
-//                ShowPath(ReconstructPath(current), startTile, goalTile);
-//                return;
-//            }
-
-//            openSet.Remove(current);
-//            closedSet.Add(current.tile);
-//            current.tile.GetComponent<Renderer>().material.color = closedColor;
-
-//            foreach (Tile neighbor in GetNeighbors(current.tile))
-//            {
-//                if (closedSet.Contains(neighbor) || neighbor.tileType == TileType.Wall)
-//                    continue;
-
-//                float tentativeG = current.gCost + GetTileCost(neighbor);
-//                PathNode existing = openSet.FirstOrDefault(n => n.tile == neighbor);
-
-//                if (existing == null)
-//                {
-//                    openSet.Add(new PathNode
-//                    {
-//                        tile = neighbor,
-//                        parent = current,
-//                        gCost = tentativeG,
-//                        hCost = Heuristic(neighbor, goalTile)
-//                    });
-//                    neighbor.GetComponent<Renderer>().material.color = openColor;
-//                }
-//                else if (tentativeG < existing.gCost)
-//                {
-//                    existing.gCost = tentativeG;
-//                    existing.parent = current;
-//                }
-//            }
-//        }
-
-//        Debug.LogWarning("A*: No path found.");
-//    }
-
-
-
-//    private void ShowPath(List<Tile> path, Tile startTile, Tile goalTile)
-//    {
-//        // Color start and goal
-//        startTile.GetComponent<Renderer>().material.color = Color.green;
-//        goalTile.GetComponent<Renderer>().material.color = Color.blue;
-
-//        // Draw arrows
-//        for (int i = 0; i < path.Count - 1; i++)
-//        {
-//            Tile from = path[i];
-//            Tile to = path[i + 1];
-//            Vector3 dir = to.transform.position - from.transform.position;
-//            Quaternion rot = Quaternion.LookRotation(dir);
-//            GameObject arrow = Instantiate(arrowPrefab, from.transform.position + Vector3.up * 0.5f, rot);
-//            if (arrowParent) arrow.transform.parent = arrowParent;
-//        }
-//    }
-
-//}
 
