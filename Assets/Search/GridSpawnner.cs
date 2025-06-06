@@ -1,17 +1,31 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
-
+using UnityEngine.UI;
+ 
 public class GridSpawner : MonoBehaviour
 {
-    public GameObject tilePrefab;
+    public GameObject tilePrefab; 
     public int width = 5;
     public int height = 5;
     public float spacing = 1.1f;
 
-    void Start()
+    public InputField widthInput;
+    public InputField heightInput;
+
+    private GameObject[,] tiles;
+
+    public void GenerateGrid()
     {
+        // Clear previous grid
+        foreach (Transform child in transform)
+            Destroy(child.gameObject);
+
+        int.TryParse(widthInput.text, out width);
+        int.TryParse(heightInput.text, out height);
+
+        tiles = new GameObject[width, height];
+
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -26,6 +40,8 @@ public class GridSpawner : MonoBehaviour
 
                 tile.GetComponent<Renderer>().material.color = Color.white;
                 tile.tag = "Tile";
+
+                tiles[x, y] = tile;
             }
         }
     }

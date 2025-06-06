@@ -246,9 +246,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   heuristic: 1
-  openColor: {r: 0, g: 1, b: 1, a: 1}
-  closedColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
-  pathColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  strategy: 3
+  startTile: {fileID: 0}
+  goalTile: {fileID: 0}
+  isPathResolved: 0
+  arrowPrefab: {fileID: 0}
+  arrowParent: {fileID: 0}
+  pathOutputText: {fileID: 0}
 --- !u!4 &535510537
 Transform:
   m_ObjectHideFlags: 0
@@ -294,9 +298,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tilePrefab: {fileID: 8520883104943946926, guid: a3d5cdb194fd58f45a2f329950589666, type: 3}
-  gridWidth: 5
-  gridHeight: 5
-  tileSpacing: 1.1
+  width: 5
+  height: 5
+  spacing: 1.1
 --- !u!4 &1458075657
 Transform:
   m_ObjectHideFlags: 0
