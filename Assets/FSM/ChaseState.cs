@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+
 public class ChaseState : IState
 {
     private EnemyAI ai;
@@ -19,7 +20,7 @@ public class ChaseState : IState
 
     public void Enter()
     {
-        // Optional: trigger chase animation
+        ai.GetComponent<Renderer>().material.color = Color.yellow;
     }
 
     public void Execute()
@@ -29,6 +30,11 @@ public class ChaseState : IState
         if (dist > chaseRange * 1.2f)
         {
             ai.TransitionToState(ai.patrolState);
+            return;
+        }
+        else if (dist < ai.attackRange)
+        {
+            ai.TransitionToState(ai.attackState);
             return;
         }
 

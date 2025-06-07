@@ -19,6 +19,7 @@ public class PatrolState : IState
 
     public void Enter()
     {
+        ai.GetComponent<Renderer>().material.color = Color.green;
         agent.SetDestination(waypoints[index].position);
     }
 
@@ -43,4 +44,3 @@ public class PatrolState : IState
         // Optional: cleanup or animation
     }
 }
-
